@@ -31,10 +31,10 @@ archives:
 
 brews:
   - repository:
-      owner: marcusziade
+      owner: guitaripod
       name: homebrew-songlink-cli
     folder: Formula
-    homepage: "https://github.com/marcusziade/songlink-cli"
+    homepage: "https://github.com/guitaripod/songlink-cli"
     description: "CLI for retrieving Songlink and Spotify links for music URLs"
     license: "MIT"
     test: |

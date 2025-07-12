@@ -1,6 +1,6 @@
 # Songlink CLI
 
-[![Github All Releases](https://img.shields.io/github/downloads/marcusziade/songlink-cli/total.svg)](https://github.com/marcusziade/songlink-cli/releases)
+[![Github All Releases](https://img.shields.io/github/downloads/guitaripod/songlink-cli/total.svg)](https://github.com/guitaripod/songlink-cli/releases)
 
 A Go program that retrieves Songlink and Spotify links for a given URL using the Songlink API. It also allows searching for songs and albums directly using Apple Music API. The output is designed to be shared as is, allowing the receiver to both use Songlink and listen to the song preview using Spotify's embed feature.
 
@@ -21,13 +21,13 @@ A Go program that retrieves Songlink and Spotify links for a given URL using the
 #### Homebrew
 
 ```
-brew tap marcusziade/songlink-cli
+brew tap guitaripod/songlink-cli
 brew install songlink-cli
 ```
 
 #### Build
 
-1. Clone the repository: `git clone https://github.com/marcusziade/songlink-cli.git`
+1. Clone the repository: `git clone https://github.com/guitaripod/songlink-cli.git`
 2. Navigate to the project directory: `cd songlink-cli`
 3. Install dependencies: `go mod download`
 4. Build the executable: `go build -o songlink .`
@@ -35,7 +35,7 @@ brew install songlink-cli
 
 ### Download and Run
 
-Go to [Releases](https://github.com/marcusziade/songlink-cli/releases) and download the appropriate version for your operating system (Linux, macOS, Windows).
+Go to [Releases](https://github.com/guitaripod/songlink-cli/releases) and download the appropriate version for your operating system (Linux, macOS, Windows).
 
 ## Usage
 
