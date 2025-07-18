@@ -4,6 +4,18 @@
 
 A Go program that retrieves Songlink and Spotify links for a given URL using the Songlink API. It also allows searching for songs and albums directly using Apple Music API. The output is designed to be shared as is, allowing the receiver to both use Songlink and listen to the song preview using Spotify's embed feature.
 
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Process URL from clipboard](#process-url-from-clipboard)
+  - [Search for songs or albums](#search-for-songs-or-albums)
+  - [Download single tracks](#download-single-tracks)
+  - [Download playlists/albums](#download-entire-playlists-or-albums)
+- [Examples](#examples)
+- [Contributions](#contributions)
+- [License](#license)
+
 ## Features
 
 -   Retrieves Songlink and Spotify links for a given song or album URL
@@ -17,6 +29,9 @@ A Go program that retrieves Songlink and Spotify links for a given URL using the
 
 ## Installation
 
+<details>
+<summary><strong>📦 Installation Methods</strong></summary>
+
 ### macOS
 
 #### Homebrew
@@ -26,7 +41,7 @@ brew tap guitaripod/songlink-cli
 brew install songlink-cli
 ```
 
-#### Build
+#### Build from Source
 
 1. Clone the repository: `git clone https://github.com/guitaripod/songlink-cli.git`
 2. Navigate to the project directory: `cd songlink-cli`
@@ -34,23 +49,26 @@ brew install songlink-cli
 4. Build the executable: `go build -o songlink .`
 5. Run the program: `./songlink`
 
-### Download and Run
+### Download Pre-built Binaries
 
 Go to [Releases](https://github.com/guitaripod/songlink-cli/releases) and download the appropriate version for your operating system (Linux, macOS, Windows).
 
-### Dependencies for Download Features
+</details>
+
+<details>
+<summary><strong>🛠️ Dependencies for Download Features</strong></summary>
 
 To use the download functionality (single tracks or playlists), you need:
 
 - `yt-dlp` - For downloading audio from YouTube
 - `ffmpeg` - For audio/video processing
 
-Install on macOS:
+**Install on macOS:**
 ```bash
 brew install yt-dlp ffmpeg
 ```
 
-Install on Linux:
+**Install on Linux:**
 ```bash
 # Ubuntu/Debian
 sudo apt install yt-dlp ffmpeg
@@ -59,9 +77,12 @@ sudo apt install yt-dlp ffmpeg
 sudo pacman -S yt-dlp ffmpeg
 ```
 
+</details>
+
 ## Usage
 
-### Process URL from clipboard
+<details>
+<summary><strong>📋 Process URL from Clipboard</strong></summary>
 
 1. Copy the URL of the song or album you want to retrieve links for.
 2. Run the program using one of the following commands:
@@ -71,7 +92,12 @@ sudo pacman -S yt-dlp ffmpeg
     - `./songlink -s`: Retrieves only the Spotify URL
 3. The program will automatically retrieve the Songlink and/or Spotify link for the song or album and copy it to your clipboard.
 
-### Search for songs or albums
+</details>
+
+<details>
+<summary><strong>🔍 Search for Songs or Albums</strong></summary>
+
+### Basic Search
 
 1. Configure your Apple Music API credentials (first time only):
    ```
@@ -92,7 +118,7 @@ sudo pacman -S yt-dlp ffmpeg
 
 5. If you choose to download, the file(s) will be saved in the `downloads/` directory by default.
 
-#### Search Flags
+### Search Flags
 
 - `-type=song`: Search for songs only (default)
 - `-type=album`: Search for albums only
@@ -103,27 +129,33 @@ Combined with output format flags:
 ./songlink search -type=album -d "Dark Side of the Moon"
 ```
 
-### Download full tracks
+</details>
 
-You can download the full track audio or a video with artwork.
+<details>
+<summary><strong>💿 Download Single Tracks</strong></summary>
+
+Download individual tracks as audio files or videos with artwork.
 
 ```bash
 ./songlink download [flags] <query>
 ```
 
-Flags:
+### Flags
 
 - `-type=song` / `album` / `both` (default: song) — Type of Apple Music search.  
 - `-format=mp3` / `mp4` (default: mp3) — Download as an audio file (MP3) or a video with artwork (MP4).  
 - `-out=DIR` (default: downloads) — Directory to save the downloaded files.
 
-Example:
+### Example
 
 ```bash
 ./songlink download -type=song -format=mp4 "Purple Rain"
 ```
 
-### Download entire playlists or albums
+</details>
+
+<details>
+<summary><strong>📀 Download Entire Playlists or Albums</strong></summary>
 
 Download all tracks from an Apple Music playlist or album URL.
 
@@ -131,7 +163,19 @@ Download all tracks from an Apple Music playlist or album URL.
 ./songlink playlist [flags] <apple-music-url>
 ```
 
-Flags:
+### ⚠️ Supported Content
+
+**✅ Supported:**
+- Public catalog albums (e.g., `https://music.apple.com/us/album/album-name/123456789`)
+- Public catalog playlists (e.g., `https://music.apple.com/us/playlist/playlist-name/pl.abcdef123456`)
+
+**❌ Not Supported:**
+- Personal library playlists (`/library/playlist/`)
+- Private or user-created playlists
+- Region-locked content (may return 404 errors)
+- Apple Music Radio stations
+
+### Flags
 
 - `--format=mp3` / `mp4` (default: mp3) — Download format for all tracks
 - `--out=DIR` (default: downloads) — Output directory for downloaded files
@@ -139,7 +183,7 @@ Flags:
 - `--metadata` — Save playlist/album metadata as JSON
 - `--debug` — Show detailed download progress and debug info
 
-Examples:
+### Examples
 
 ```bash
 # Download an album
@@ -152,16 +196,27 @@ Examples:
 ./songlink playlist --format=mp4 --out=my-music --concurrent=5 "https://music.apple.com/album/..."
 ```
 
-The playlist download feature:
-- Downloads all tracks in parallel for faster completion
-- Automatically retries failed downloads
-- Shows progress for each track
-- Saves metadata including track order and download status
-- Creates the output directory if it doesn't exist
+### Features
 
-## Apple Music API Setup
+- **Parallel Downloads**: Downloads multiple tracks simultaneously for faster completion
+- **Automatic Retry**: Failed downloads are retried with exponential backoff
+- **Progress Tracking**: Real-time progress for each track
+- **Metadata Support**: Saves playlist/album info and track details as JSON
+- **Smart Directory Creation**: Automatically creates output directories
 
-To use the search functionality, you need Apple Music API credentials. The CLI includes a guided setup process:
+### Troubleshooting
+
+If you get a "404 Resource Not Found" error:
+- The playlist/album may be region-locked
+- The content may have been removed
+- Try using a different storefront in the URL (e.g., `/us/`, `/gb/`, `/jp/`)
+
+</details>
+
+<details>
+<summary><strong>🔐 Apple Music API Setup</strong></summary>
+
+To use the search and download functionality, you need Apple Music API credentials. The CLI includes a guided setup process:
 
 1. Run `./songlink config`
 2. Follow the prompts to enter your Apple Developer credentials:
@@ -172,52 +227,67 @@ To use the search functionality, you need Apple Music API credentials. The CLI i
 
 Your credentials will be securely stored in `~/.songlink-cli/config.json`
 
+### Getting Apple Music API Credentials
+
+1. Sign in to [Apple Developer](https://developer.apple.com)
+2. Go to Certificates, Identifiers & Profiles
+3. Under Keys, create a new key with MusicKit enabled
+4. Download the .p8 private key file
+5. Note your Team ID and Key ID
+
+</details>
+
 ## Examples
 
-Here are a few examples of how to use the Songlink CLI:
+<details>
+<summary><strong>📚 Quick Examples</strong></summary>
 
--   Retrieve only the Songlink URL:
+### Link Retrieval
 
-    ```
-    ./songlink
-    ```
+```bash
+# Get Songlink URL (default)
+./songlink
 
--   Retrieve the Songlink URL without surrounding `<>` + Spotify embed:
+# Get Songlink URL without <> for Twitter
+./songlink -x
 
-    ```
-    ./songlink -x
-    ```
+# Get Songlink URL with <> + Spotify URL for Discord
+./songlink -d
 
--   Retrieve the Songlink URL surrounded by `<>` + Spotify embed:
+# Get only Spotify URL
+./songlink -s
+```
 
-    ```
-    ./songlink -d
-    ```
+### Search Examples
 
--   Retrieve only the Spotify URL:
-    ```
-    ./songlink -s
-    ```
+```bash
+# Search for a song
+./songlink search "Bohemian Rhapsody"
 
--   Search for a song and get links:
-    ```
-    ./songlink search "Bohemian Rhapsody"
-    ```
+# Search for an album with Discord format
+./songlink search -type=album -d "Abbey Road"
 
--   Search for an album with specific output format:
-    ```
-    ./songlink search -type=album -d "Abbey Road"
-    ```
+# Search for both songs and albums
+./songlink search -type=both "Beatles"
+```
 
--   Download an entire album from Apple Music:
-    ```
-    ./songlink playlist "https://music.apple.com/gb/album/final-fantasy-x-lofi-sound-of-spira/1693470715"
-    ```
+### Download Examples
 
--   Download a playlist with metadata:
-    ```
-    ./songlink playlist --metadata --out=playlists "https://music.apple.com/us/playlist/..."
-    ```
+```bash
+# Download a single track as MP3
+./songlink download "Purple Rain"
+
+# Download a single track as MP4 with artwork
+./songlink download -format=mp4 "Imagine"
+
+# Download an entire album
+./songlink playlist "https://music.apple.com/us/album/abbey-road/401469823"
+
+# Download album with metadata and custom settings
+./songlink playlist --metadata --out=my-music --concurrent=5 "https://music.apple.com/us/album/..."
+```
+
+</details>
 
 ## Contributions
 
