@@ -9,6 +9,7 @@ A Go program that retrieves Songlink and Spotify links for a given URL using the
 -   Retrieves Songlink and Spotify links for a given song or album URL
 -   Search for songs and albums directly using Apple Music API
 -   Download full tracks as MP3 or MP4 files with album artwork
+-   Download entire playlists or albums from Apple Music URLs
 -   Supports command line arguments for customizing the output format
 -   Automatically copies the output to the clipboard for easy sharing
 -   Includes a loading indicator to provide visual feedback during the retrieval process
@@ -36,6 +37,27 @@ brew install songlink-cli
 ### Download and Run
 
 Go to [Releases](https://github.com/guitaripod/songlink-cli/releases) and download the appropriate version for your operating system (Linux, macOS, Windows).
+
+### Dependencies for Download Features
+
+To use the download functionality (single tracks or playlists), you need:
+
+- `yt-dlp` - For downloading audio from YouTube
+- `ffmpeg` - For audio/video processing
+
+Install on macOS:
+```bash
+brew install yt-dlp ffmpeg
+```
+
+Install on Linux:
+```bash
+# Ubuntu/Debian
+sudo apt install yt-dlp ffmpeg
+
+# Arch
+sudo pacman -S yt-dlp ffmpeg
+```
 
 ## Usage
 
@@ -101,6 +123,42 @@ Example:
 ./songlink download -type=song -format=mp4 "Purple Rain"
 ```
 
+### Download entire playlists or albums
+
+Download all tracks from an Apple Music playlist or album URL.
+
+```bash
+./songlink playlist [flags] <apple-music-url>
+```
+
+Flags:
+
+- `--format=mp3` / `mp4` (default: mp3) — Download format for all tracks
+- `--out=DIR` (default: downloads) — Output directory for downloaded files
+- `--concurrent=N` (default: 3) — Number of parallel downloads
+- `--metadata` — Save playlist/album metadata as JSON
+- `--debug` — Show detailed download progress and debug info
+
+Examples:
+
+```bash
+# Download an album
+./songlink playlist "https://music.apple.com/us/album/abbey-road/401469823"
+
+# Download a playlist with metadata
+./songlink playlist --metadata "https://music.apple.com/us/playlist/top-100-global/pl.d25f5d1181894928af76c85c967f8f31"
+
+# Download with custom settings
+./songlink playlist --format=mp4 --out=my-music --concurrent=5 "https://music.apple.com/album/..."
+```
+
+The playlist download feature:
+- Downloads all tracks in parallel for faster completion
+- Automatically retries failed downloads
+- Shows progress for each track
+- Saves metadata including track order and download status
+- Creates the output directory if it doesn't exist
+
 ## Apple Music API Setup
 
 To use the search functionality, you need Apple Music API credentials. The CLI includes a guided setup process:
@@ -149,6 +207,16 @@ Here are a few examples of how to use the Songlink CLI:
 -   Search for an album with specific output format:
     ```
     ./songlink search -type=album -d "Abbey Road"
+    ```
+
+-   Download an entire album from Apple Music:
+    ```
+    ./songlink playlist "https://music.apple.com/gb/album/final-fantasy-x-lofi-sound-of-spira/1693470715"
+    ```
+
+-   Download a playlist with metadata:
+    ```
+    ./songlink playlist --metadata --out=playlists "https://music.apple.com/us/playlist/..."
     ```
 
 ## Contributions
