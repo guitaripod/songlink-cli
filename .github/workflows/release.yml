@@ -1,12 +1,11 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (X.Y.Z format)'
-        required: true
-        type: string
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: write
@@ -25,22 +24,24 @@ jobs:
         with:
           go-version: stable
 
-      - name: Validate version
+      - name: Check if we should release
+        id: should_release
         run: |
-          VERSION=${{ github.event.inputs.version }}
-          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must be in format X.Y.Z"
-            exit 1
+          # Only run on tag pushes
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "This is a tag push, will create release"
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "This is a branch push, skipping release"
           fi
-          echo "Version is valid: $VERSION"
-          TAG="v$VERSION"
-          echo "Creating tag: $TAG"
-          git tag $TAG || (echo "Tag already exists" && exit 1)
 
       - name: Install cosign
+        if: steps.should_release.outputs.should_release == 'true'
         uses: sigstore/cosign-installer@v3.1.2
 
       - name: Run GoReleaser
+        if: steps.should_release.outputs.should_release == 'true'
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
