@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/marcusziade/musickitkat"
-	"github.com/marcusziade/musickitkat/auth"
+	"github.com/guitaripod/musickitkat"
+	"github.com/guitaripod/musickitkat/auth"
 )
 
 // SearchType represents the type of search to perform

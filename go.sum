@@ -4,7 +4,7 @@ github.com/golang-jwt/jwt/v5 v5.2.1 h1:OuVbFODueb089Lh128TAcimifWaLhJwVflnrgM17w
 github.com/golang-jwt/jwt/v5 v5.2.1/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/marcusziade/musickitkat v0.0.2 h1:lTB8t/MP6RL6EABnfa4qSCjki8ikHX2uLXfdf6plNhc=
-github.com/marcusziade/musickitkat v0.0.2/go.mod h1:9oVuSb7ziUzTXpCXhZmjOrFiUFCz6TZbrfJm2gkz17E=
+github.com/guitaripod/musickitkat v0.0.3 h1:9R9mpjBaaZ6+VuDrrv813Z3iDwCmZV5pX1HR9/ypclM=
+github.com/guitaripod/musickitkat v0.0.3/go.mod h1:yG+06uTZzp3JvHv1gmkgzm5eVPfnASd3J9NGnaT/QfU=
 golang.org/x/oauth2 v0.28.0 h1:CrgCKl8PPAVtLnU3c+EDw6x11699EWlsDeWNWKdIOkc=
 golang.org/x/oauth2 v0.28.0/go.mod h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=

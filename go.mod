@@ -1,4 +1,4 @@
-module github.com/marcusziade/songlink-cli.git
+module github.com/guitaripod/songlink-cli.git
 
 go 1.23.0
 
@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/atotto/clipboard v0.1.4
-	github.com/marcusziade/musickitkat v0.0.2
+	github.com/guitaripod/musickitkat v0.0.3
 )
 
 require (

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/marcusziade/musickitkat/models"
+	"github.com/guitaripod/musickitkat/models"
 )
 
 // AppleMusicClient extends the Apple Music API functionality
