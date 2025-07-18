@@ -42,6 +42,11 @@ var commands = []Command{
        Description: "Search for a song or album and download it as mp3 or mp4",
        Execute:     executeDownload,
    },
+   {
+       Name:        "playlist",
+       Description: "Download an entire playlist or album from Apple Music URL",
+       Execute:     executePlaylist,
+   },
 }
 
 func main() {
@@ -201,6 +206,162 @@ func executeDownload(args []string) error {
    return nil
 }
 
+// executePlaylist handles the playlist subcommand
+func executePlaylist(args []string) error {
+	// Define playlist flags
+	playlistCmd := flag.NewFlagSet("playlist", flag.ExitOnError)
+	formatFlag := playlistCmd.String("format", "mp3", "Download format: mp3 or mp4 (default: mp3)")
+	outFlag := playlistCmd.String("out", "downloads", "Output directory for downloaded files")
+	concurrentFlag := playlistCmd.Int("concurrent", 3, "Number of parallel downloads (default: 3)")
+	metadataFlag := playlistCmd.Bool("metadata", false, "Save playlist metadata JSON")
+	debugFlag := playlistCmd.Bool("debug", false, "Enable debug logging")
+
+	// Parse flags
+	if err := playlistCmd.Parse(args); err != nil {
+		return err
+	}
+
+	// Get URL argument
+	urlArgs := playlistCmd.Args()
+	if len(urlArgs) == 0 {
+		return fmt.Errorf("Apple Music URL required")
+	}
+	musicURL := urlArgs[0]
+
+	// Load config
+	config, err := LoadConfig()
+	if err != nil {
+		return fmt.Errorf("error loading config: %w", err)
+	}
+	if !config.ConfigExists {
+		fmt.Println("Apple Music API credentials not found. Let's set them up.")
+		if err := RunOnboarding(); err != nil {
+			return fmt.Errorf("error during onboarding: %w", err)
+		}
+		config, err = LoadConfig()
+		if err != nil {
+			return fmt.Errorf("error loading config after onboarding: %w", err)
+		}
+	}
+
+	// Parse the URL
+	parser := NewPlaylistURLParser()
+	resource, err := parser.Parse(musicURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	fmt.Printf("Detected %s from %s storefront\n", resource.Type, resource.Storefront)
+
+	// Create extended music searcher
+	searcher, err := NewExtendedMusicSearcher(config)
+	if err != nil {
+		return fmt.Errorf("error creating music searcher: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	// Fetch tracks based on resource type
+	var tracks []SearchResult
+	var metadata *PlaylistMetadata
+
+	switch resource.Type {
+	case ParsedAlbum:
+		fmt.Printf("Fetching album details...\n")
+		album, err := searcher.GetAlbumWithTracks(ctx, resource.ID, resource.Storefront)
+		if err != nil {
+			return fmt.Errorf("error fetching album: %w", err)
+		}
+		tracks = album.Tracks
+		metadata = CreateAlbumMetadata(album, musicURL)
+		fmt.Printf("Album: %s - %s (%d tracks)\n", album.Name, album.ArtistName, len(tracks))
+
+	case ParsedPlaylist:
+		fmt.Printf("Fetching playlist details...\n")
+		playlist, err := searcher.GetPlaylistWithTracks(ctx, resource.ID, resource.Storefront)
+		if err != nil {
+			return fmt.Errorf("error fetching playlist: %w", err)
+		}
+		tracks = playlist.Tracks
+		metadata = CreatePlaylistMetadata(playlist, musicURL)
+		fmt.Printf("Playlist: %s by %s (%d tracks)\n", playlist.Name, playlist.CuratorName, len(tracks))
+	}
+
+	if len(tracks) == 0 {
+		return fmt.Errorf("no tracks found")
+	}
+
+	// Ensure output directory exists
+	if err := os.MkdirAll(*outFlag, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Save initial metadata if requested
+	if *metadataFlag {
+		if err := SavePlaylistMetadata(metadata, *outFlag); err != nil {
+			fmt.Printf("Warning: Failed to save metadata: %v\n", err)
+		}
+	}
+
+	// Create batch downloader
+	downloader := NewBatchDownloader(*concurrentFlag)
+	downloader.Start(ctx)
+
+	// Queue all downloads
+	fmt.Printf("\nQueuing %d tracks for download...\n", len(tracks))
+	for i, track := range tracks {
+		job := DownloadJob{
+			Track:     track,
+			Format:    *formatFlag,
+			OutputDir: *outFlag,
+			Debug:     *debugFlag,
+			Index:     i + 1,
+		}
+		if err := downloader.QueueDownload(job); err != nil {
+			fmt.Printf("Failed to queue track %d: %v\n", i+1, err)
+		}
+	}
+
+	// Monitor downloads
+	fmt.Printf("Starting downloads with %d workers...\n\n", *concurrentFlag)
+	
+	// Create a channel to signal when all downloads are processed
+	done := make(chan bool)
+	go func() {
+		for result := range downloader.GetResults() {
+			if result.Error != nil {
+				fmt.Printf("❌ [%d/%d] Failed: %s - %s (%v)\n", 
+					result.Job.Index, len(tracks),
+					result.Job.Track.ArtistName, result.Job.Track.Name, 
+					result.Error)
+			} else {
+				fmt.Printf("✅ [%d/%d] Downloaded: %s - %s\n", 
+					result.Job.Index, len(tracks),
+					result.Job.Track.ArtistName, result.Job.Track.Name)
+			}
+
+			// Update metadata if enabled
+			if *metadataFlag && metadata != nil {
+				metadata.UpdateTrackStatus(result.Job.Track.ID, 
+					result.Error == nil, result.FilePath, result.Error)
+				// Save updated metadata
+				SavePlaylistMetadata(metadata, *outFlag)
+			}
+		}
+		done <- true
+	}()
+
+	// Close the downloader and wait for completion
+	downloader.Close()
+	<-done
+
+	// Print summary
+	downloader.GetProgress().PrintSummary()
+
+	return nil
+}
+
 // runDefault runs the default behavior (process URL from clipboard)
 func runDefault() error {
 	searchURL, err := clipboard.ReadAll()
@@ -233,12 +394,20 @@ func printUsage() {
 	fmt.Println("  songlink-cli [flags]                 Process URL from clipboard")
 	fmt.Println("  songlink-cli search [flags] <query>  Search for a song or album")
 	fmt.Println("  songlink-cli config                  Configure Apple Music API credentials")
+	fmt.Println("  songlink-cli download [flags] <query> Download a song or album")
+	fmt.Println("  songlink-cli playlist [flags] <url>  Download entire playlist/album")
 	fmt.Println("\nFlags:")
 	fmt.Println("  -x  Return the song.link URL without surrounding <>")
 	fmt.Println("  -d  Return the song.link URL surrounded by <> and the Spotify URL")
 	fmt.Println("  -s  Return only the Spotify URL")
 	fmt.Println("\nSearch Flags:")
 	fmt.Println("  -type=<type>  Type of search: song, album, or both (default: song)")
+	fmt.Println("\nPlaylist Flags:")
+	fmt.Println("  --format=<fmt>    Download format: mp3 or mp4 (default: mp3)")
+	fmt.Println("  --out=<dir>       Output directory (default: downloads)")
+	fmt.Println("  --concurrent=<n>  Number of parallel downloads (default: 3)")
+	fmt.Println("  --metadata        Save playlist metadata JSON")
+	fmt.Println("  --debug           Show debug output")
 }
 
 func loadingIndicator(stop chan bool) {
