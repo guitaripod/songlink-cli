@@ -20,14 +20,13 @@ var (
 	helpFlag = flag.Bool("help", false, "Show help information")
 )
 
-// Command represents a CLI command
+// Command represents a CLI subcommand with its name, description, and execution function.
 type Command struct {
 	Name        string
 	Description string
 	Execute     func(args []string) error
 }
 
-// Commands available in the application
 var commands = []Command{
 	{
 		Name:        "search",
@@ -52,21 +51,17 @@ var commands = []Command{
 }
 
 func main() {
-	// Define base flags
 	flag.Parse()
 
-	// Check for help flags
 	if *hFlag || *helpFlag {
 		printHelp("")
 		os.Exit(0)
 	}
 
-	// Check if a subcommand is provided
 	args := flag.Args()
 	if len(args) > 0 {
 		subcommand := args[0]
 		
-		// Find and execute the appropriate command
 		for _, cmd := range commands {
 			if cmd.Name == subcommand {
 				err := cmd.Execute(args[1:])
@@ -78,19 +73,16 @@ func main() {
 			}
 		}
 		
-		// Check if asking for help on a subcommand
 		if subcommand == "help" && len(args) > 1 {
 			printHelp(args[1])
 			os.Exit(0)
 		}
 		
-		// If we get here, the subcommand wasn't recognized
 		fmt.Printf("Unknown command: %s\n\n", subcommand)
 		printHelp("")
 		os.Exit(1)
 	}
 
-	// No subcommand provided, run the default behavior
 	err := runDefault()
 	if err != nil {
 		fmt.Println("An error occurred:", err)
@@ -98,9 +90,7 @@ func main() {
 	}
 }
 
-// executeSearch handles the search subcommand
 func executeSearch(args []string) error {
-   // Define search flags
    searchCmd := flag.NewFlagSet("search", flag.ExitOnError)
    typeFlag := searchCmd.String("type", "song", "Type of search: song, album, or both (default: song)")
    outFlag := searchCmd.String("out", "downloads", "Output directory for downloaded files")
@@ -108,18 +98,15 @@ func executeSearch(args []string) error {
    helpFlag := searchCmd.Bool("help", false, "Show help for search command")
    hFlag := searchCmd.Bool("h", false, "Show help for search command")
 	
-	// Parse search flags
 	if err := searchCmd.Parse(args); err != nil {
 		return err
 	}
 	
-	// Check for help
 	if *helpFlag || *hFlag {
 		printSearchHelp()
 		os.Exit(0)
 	}
 	
-	// Get search query
 	searchArgs := searchCmd.Args()
 	if len(searchArgs) == 0 {
 		return fmt.Errorf("search query required")
@@ -127,7 +114,6 @@ func executeSearch(args []string) error {
 	
 	query := searchArgs[0]
 	
-	// Determine search type
 	var searchType SearchType
 	switch *typeFlag {
 	case "song":
@@ -135,27 +121,21 @@ func executeSearch(args []string) error {
 	case "album":
 		searchType = Album
 	default:
-		// Use Both to search for songs and albums
 		searchType = Both
 	}
 	
-   // Handle search
    return HandleSearch(query, searchType, *outFlag, *debugFlag)
 }
 
-// executeConfig handles the config subcommand
 func executeConfig(args []string) error {
-	// Define config flags
 	configCmd := flag.NewFlagSet("config", flag.ExitOnError)
 	helpFlag := configCmd.Bool("help", false, "Show help for config command")
 	hFlag := configCmd.Bool("h", false, "Show help for config command")
 	
-	// Parse flags
 	if err := configCmd.Parse(args); err != nil {
 		return err
 	}
 	
-	// Check for help
 	if *helpFlag || *hFlag {
 		printConfigHelp()
 		os.Exit(0)
@@ -165,9 +145,7 @@ func executeConfig(args []string) error {
    return RunOnboarding()
 }
 
-// executeDownload handles the download subcommand
 func executeDownload(args []string) error {
-   // Define download flags
    downloadCmd := flag.NewFlagSet("download", flag.ExitOnError)
    typeFlag := downloadCmd.String("type", "song", "Type of search: song, album, or both (default: song)")
    formatFlag := downloadCmd.String("format", "mp3", "Download format: mp3 or mp4 (default: mp3)")
@@ -187,14 +165,12 @@ func executeDownload(args []string) error {
        os.Exit(0)
    }
 
-   // Get search query
    queryArgs := downloadCmd.Args()
    if len(queryArgs) == 0 {
        return fmt.Errorf("download query required")
    }
    query := strings.Join(queryArgs, " ")
 
-   // Determine search type
    var searchType SearchType
    switch *typeFlag {
    case "song":
@@ -205,7 +181,6 @@ func executeDownload(args []string) error {
        searchType = Song
    }
 
-   // Load config
    config, err := LoadConfig()
    if err != nil {
        return fmt.Errorf("error loading config: %w", err)
@@ -221,13 +196,11 @@ func executeDownload(args []string) error {
        }
    }
 
-   // Create music searcher
    searcher, err := NewMusicSearcher(config)
    if err != nil {
        return fmt.Errorf("error creating music searcher: %w", err)
    }
 
-   // Search for music
    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
    defer cancel()
    results, err := searcher.Search(ctx, query, searchType)
@@ -235,14 +208,12 @@ func executeDownload(args []string) error {
        return fmt.Errorf("error searching: %w", err)
    }
 
-   // Display results and select
    selected, err := DisplaySearchResults(results)
    if err != nil {
        return fmt.Errorf("error selecting result: %w", err)
    }
    fmt.Printf("\nSelected: %s - %s\n", selected.Name, selected.ArtistName)
 
-   // Download track via YouTube
    fmt.Print("Downloading... ")
    path, err := DownloadTrack(selected.Name, selected.ArtistName, selected.ArtworkURL, *formatFlag, *outFlag, *debugFlag)
    if err != nil {
@@ -252,9 +223,7 @@ func executeDownload(args []string) error {
    return nil
 }
 
-// executePlaylist handles the playlist subcommand
 func executePlaylist(args []string) error {
-	// Define playlist flags
 	playlistCmd := flag.NewFlagSet("playlist", flag.ExitOnError)
 	formatFlag := playlistCmd.String("format", "mp3", "Download format: mp3 or mp4 (default: mp3)")
 	outFlag := playlistCmd.String("out", "downloads", "Output directory for downloaded files")
@@ -264,25 +233,21 @@ func executePlaylist(args []string) error {
 	helpFlag := playlistCmd.Bool("help", false, "Show help for playlist command")
 	hFlag := playlistCmd.Bool("h", false, "Show help for playlist command")
 
-	// Parse flags
 	if err := playlistCmd.Parse(args); err != nil {
 		return err
 	}
 	
-	// Check for help
 	if *helpFlag || *hFlag {
 		printPlaylistHelp()
 		os.Exit(0)
 	}
 
-	// Get URL argument
 	urlArgs := playlistCmd.Args()
 	if len(urlArgs) == 0 {
 		return fmt.Errorf("Apple Music URL required")
 	}
 	musicURL := urlArgs[0]
 
-	// Load config
 	config, err := LoadConfig()
 	if err != nil {
 		return fmt.Errorf("error loading config: %w", err)
@@ -298,7 +263,6 @@ func executePlaylist(args []string) error {
 		}
 	}
 
-	// Parse the URL
 	parser := NewPlaylistURLParser()
 	resource, err := parser.Parse(musicURL)
 	if err != nil {
@@ -307,7 +271,6 @@ func executePlaylist(args []string) error {
 
 	fmt.Printf("Detected %s from %s storefront\n", resource.Type, resource.Storefront)
 
-	// Create extended music searcher
 	searcher, err := NewExtendedMusicSearcher(config)
 	if err != nil {
 		return fmt.Errorf("error creating music searcher: %w", err)
@@ -316,7 +279,6 @@ func executePlaylist(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// Fetch tracks based on resource type
 	var tracks []SearchResult
 	var metadata *PlaylistMetadata
 
@@ -346,23 +308,19 @@ func executePlaylist(args []string) error {
 		return fmt.Errorf("no tracks found")
 	}
 
-	// Ensure output directory exists
 	if err := os.MkdirAll(*outFlag, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Save initial metadata if requested
 	if *metadataFlag {
 		if err := SavePlaylistMetadata(metadata, *outFlag); err != nil {
 			fmt.Printf("Warning: Failed to save metadata: %v\n", err)
 		}
 	}
 
-	// Create batch downloader
 	downloader := NewBatchDownloader(*concurrentFlag)
 	downloader.Start(ctx)
 
-	// Queue all downloads
 	fmt.Printf("\nQueuing %d tracks for download...\n", len(tracks))
 	for i, track := range tracks {
 		job := DownloadJob{
@@ -377,10 +335,8 @@ func executePlaylist(args []string) error {
 		}
 	}
 
-	// Monitor downloads
 	fmt.Printf("Starting downloads with %d workers...\n\n", *concurrentFlag)
 	
-	// Create a channel to signal when all downloads are processed
 	done := make(chan bool)
 	go func() {
 		for result := range downloader.GetResults() {
@@ -395,28 +351,23 @@ func executePlaylist(args []string) error {
 					result.Job.Track.ArtistName, result.Job.Track.Name)
 			}
 
-			// Update metadata if enabled
 			if *metadataFlag && metadata != nil {
 				metadata.UpdateTrackStatus(result.Job.Track.ID, 
 					result.Error == nil, result.FilePath, result.Error)
-				// Save updated metadata
 				SavePlaylistMetadata(metadata, *outFlag)
 			}
 		}
 		done <- true
 	}()
 
-	// Close the downloader and wait for completion
 	downloader.Close()
 	<-done
 
-	// Print summary
 	downloader.GetProgress().PrintSummary()
 
 	return nil
 }
 
-// runDefault runs the default behavior (process URL from clipboard)
 func runDefault() error {
 	searchURL, err := clipboard.ReadAll()
 	if err != nil {
@@ -442,7 +393,6 @@ func runDefault() error {
 	return nil
 }
 
-// printHelp prints comprehensive help information
 func printHelp(command string) {
 	switch command {
 	case "search":
@@ -458,7 +408,6 @@ func printHelp(command string) {
 	}
 }
 
-// printGeneralHelp prints the main help screen
 func printGeneralHelp() {
 	fmt.Println("Songlink CLI - A powerful tool for music sharing and downloading")
 	fmt.Println("")
@@ -501,7 +450,6 @@ func printGeneralHelp() {
 	fmt.Println("  songlink-cli help <command>")
 }
 
-// printSearchHelp prints help for the search command
 func printSearchHelp() {
 	fmt.Println("songlink-cli search - Search for songs or albums and get shareable links")
 	fmt.Println("")
@@ -540,7 +488,6 @@ func printSearchHelp() {
 	fmt.Println("  - For downloads: yt-dlp and ffmpeg must be installed")
 }
 
-// printDownloadHelp prints help for the download command
 func printDownloadHelp() {
 	fmt.Println("songlink-cli download - Search and download tracks directly")
 	fmt.Println("")
@@ -577,7 +524,6 @@ func printDownloadHelp() {
 	fmt.Println("  brew install yt-dlp ffmpeg")
 }
 
-// printPlaylistHelp prints help for the playlist command
 func printPlaylistHelp() {
 	fmt.Println("songlink-cli playlist - Download entire playlists or albums")
 	fmt.Println("")
@@ -623,7 +569,6 @@ func printPlaylistHelp() {
 	fmt.Println("              storefront in URL (e.g., /us/, /gb/, /jp/)")
 }
 
-// printConfigHelp prints help for the config command
 func printConfigHelp() {
 	fmt.Println("songlink-cli config - Configure Apple Music API credentials")
 	fmt.Println("")

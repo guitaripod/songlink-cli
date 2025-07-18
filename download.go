@@ -11,23 +11,20 @@ import (
    "strings"
 )
 
-// DownloadTrack downloads a song, converting to MP3 or creating an MP4 with artwork.
-// format must be "mp3" or "mp4". debug toggles verbose external command output.
-// Returns the path where the file was saved.
+// DownloadTrack downloads a track from YouTube using yt-dlp, converting to the specified format.
+// For MP3: Downloads audio and embeds artwork.
+// For MP4: Creates a video file with the album artwork as the video stream.
+// Returns the path to the downloaded file.
 func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) (string, error) {
-   // Ensure yt-dlp is available
    if _, err := exec.LookPath("yt-dlp"); err != nil {
        return "", fmt.Errorf("yt-dlp not found in PATH: %w", err)
    }
-   // Sanitize file name
    baseName := sanitizeFileName(fmt.Sprintf("%s - %s", artist, song))
-   // Ensure output directory exists
    if err := os.MkdirAll(outDir, 0755); err != nil {
        return "", fmt.Errorf("failed to create output directory: %w", err)
    }
    switch strings.ToLower(format) {
    case "mp3":
-       // Extract audio as MP3 with embedded thumbnail
        outputTemplate := filepath.Join(outDir, baseName+".%(ext)s")
        args := []string{
            fmt.Sprintf("ytsearch1:%s %s official audio", song, artist),
@@ -50,22 +47,18 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
        }
        return filepath.Join(outDir, baseName+".mp3"), nil
    case "mp4":
-       // Ensure ffmpeg is available
        if _, err := exec.LookPath("ffmpeg"); err != nil {
            return "", fmt.Errorf("ffmpeg not found in PATH: %w", err)
        }
-       // Create temp workspace
        tempDir, err := os.MkdirTemp("", "songdl-*")
        if err != nil {
            return "", fmt.Errorf("failed to create temp dir: %w", err)
        }
        defer os.RemoveAll(tempDir)
-       // Download artwork
        artPath := filepath.Join(tempDir, "cover.jpg")
        if err := downloadFile(artPath, artworkURL); err != nil {
            return "", fmt.Errorf("failed to download artwork: %w", err)
        }
-       // Download best audio
        audioTemplate := filepath.Join(tempDir, "temp_audio.%(ext)s")
        args := []string{
            fmt.Sprintf("ytsearch1:%s %s official audio", song, artist),
@@ -83,7 +76,6 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
        if err := cmd.Run(); err != nil {
            return "", fmt.Errorf("audio download failed: %w", err)
        }
-       // Find audio file
        entries, err := os.ReadDir(tempDir)
        if err != nil {
            return "", fmt.Errorf("failed to read temp dir: %w", err)
@@ -98,7 +90,6 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
        if audioFile == "" {
            return "", fmt.Errorf("audio file not found in temp dir")
        }
-       // Build output video
        outPath := filepath.Join(outDir, baseName+".mp4")
        ffArgs := []string{
            "-y",
@@ -130,7 +121,7 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
    }
 }
 
-// downloadFile fetches a URL and writes it to the specified path
+// downloadFile downloads a file from the given URL to the specified path.
 func downloadFile(path, url string) error {
    resp, err := http.Get(url)
    if err != nil {
@@ -149,7 +140,7 @@ func downloadFile(path, url string) error {
    return err
 }
 
-// sanitizeFileName replaces invalid filename characters
+// sanitizeFileName removes characters that are invalid in filenames across different filesystems.
 func sanitizeFileName(name string) string {
    invalid := regexp.MustCompile(`[\\/:*?"<>|]`)
    return invalid.ReplaceAllString(name, "_")
