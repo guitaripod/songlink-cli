@@ -61,3 +61,6 @@ changelog:
 # Disabled signing as we don't have GPG keys configured in CI
 # signs:
 #   - artifacts: checksum
+
+release:
+  name_template: "{{ .Version }}"
