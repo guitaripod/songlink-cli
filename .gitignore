@@ -1,2 +1,6 @@
 
 dist/
+downloads/
+songlink-cli
+*.log
+test_*
