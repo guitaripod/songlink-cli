@@ -142,17 +142,14 @@ func (ems *ExtendedMusicSearcher) GetAlbumWithTracks(ctx context.Context, albumI
 
 // GetPlaylistWithTracks fetches a playlist with all its tracks
 func (ems *ExtendedMusicSearcher) GetPlaylistWithTracks(ctx context.Context, playlistID string, storefront string) (*PlaylistWithTracks, error) {
-	// Set the storefront for the catalog service
-	ems.client.Catalog.SetStorefront(storefront)
+	// Create an extended Apple Music client
+	apiClient := NewAppleMusicClient(ems.client.DeveloperToken)
 
-	// Fetch playlist details
-	playlist, err := ems.client.Catalog.GetPlaylist(ctx, playlistID)
+	// Fetch playlist details using our custom client
+	playlist, err := apiClient.GetPlaylistDetails(ctx, storefront, playlistID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get playlist: %w", err)
 	}
-
-	// Create an extended Apple Music client to fetch tracks
-	apiClient := NewAppleMusicClient(ems.client.DeveloperToken)
 	
 	// Get all tracks for this playlist
 	songs, err := apiClient.GetPlaylistTracks(ctx, storefront, playlistID)

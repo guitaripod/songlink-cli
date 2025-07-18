@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -43,6 +44,7 @@ func (c *AppleMusicClient) doRequest(ctx context.Context, method, path string, p
 
 	req.Header.Set("Authorization", "Bearer "+c.DeveloperToken)
 	req.Header.Set("Accept", "application/json")
+	
 
 	return c.HTTPClient.Do(req)
 }
@@ -88,6 +90,35 @@ func (c *AppleMusicClient) GetAlbumTracks(ctx context.Context, storefront, album
 	return allTracks, nil
 }
 
+// GetPlaylistDetails fetches playlist information
+func (c *AppleMusicClient) GetPlaylistDetails(ctx context.Context, storefront, playlistID string) (*models.Playlist, error) {
+	path := fmt.Sprintf("/catalog/%s/playlists/%s", storefront, playlistID)
+	params := url.Values{}
+
+	resp, err := c.doRequest(ctx, "GET", path, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		// Read error body for debugging
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var playlistResp models.PlaylistsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&playlistResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(playlistResp.Data) == 0 {
+		return nil, fmt.Errorf("playlist not found")
+	}
+
+	return &playlistResp.Data[0], nil
+}
+
 // GetPlaylistTracks fetches all tracks for a playlist
 func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, playlistID string) ([]models.Song, error) {
 	// First get the playlist with tracks relationship
@@ -102,7 +133,9 @@ func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, pl
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
+		// Read error body for debugging
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var playlistResp models.PlaylistsResponse
