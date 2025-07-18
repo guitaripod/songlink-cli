@@ -25,6 +25,7 @@ A Go program that retrieves Songlink and Spotify links for a given URL using the
 -   Supports command line arguments for customizing the output format
 -   Automatically copies the output to the clipboard for easy sharing
 -   Includes a loading indicator to provide visual feedback during the retrieval process
+-   Comprehensive built-in help system (`songlink-cli --help`)
 -   Thoroughly tested with unit tests to ensure reliability and correctness
 
 ## Installation
@@ -46,8 +47,8 @@ brew install songlink-cli
 1. Clone the repository: `git clone https://github.com/guitaripod/songlink-cli.git`
 2. Navigate to the project directory: `cd songlink-cli`
 3. Install dependencies: `go mod download`
-4. Build the executable: `go build -o songlink .`
-5. Run the program: `./songlink`
+4. Build the executable: `go build -o songlink-cli .`
+5. Run the program: `./songlink-cli`
 
 ### Download Pre-built Binaries
 
@@ -81,15 +82,23 @@ sudo pacman -S yt-dlp ffmpeg
 
 ## Usage
 
+```
+songlink-cli [flags]                    Process URL from clipboard
+songlink-cli <command> [flags] <args>   Run a specific command  
+songlink-cli help <command>             Show help for a command
+```
+
+Run `songlink-cli --help` for comprehensive documentation of all features.
+
 <details>
 <summary><strong>📋 Process URL from Clipboard</strong></summary>
 
 1. Copy the URL of the song or album you want to retrieve links for.
 2. Run the program using one of the following commands:
-    - `./songlink`: Retrieves only the Songlink URL
-    - `./songlink -x`: Retrieves the Songlink URL without surrounding `<>`. For Twitter
-    - `./songlink -d`: Retrieves the Songlink URL surrounded by `<>` and the Spotify URL. For Discord.
-    - `./songlink -s`: Retrieves only the Spotify URL
+    - `songlink-cli`: Retrieves only the Songlink URL
+    - `songlink-cli -x`: Retrieves the Songlink URL without surrounding `<>` (for Twitter)
+    - `songlink-cli -d`: Retrieves the Songlink URL surrounded by `<>` and the Spotify URL (for Discord)
+    - `songlink-cli -s`: Retrieves only the Spotify URL
 3. The program will automatically retrieve the Songlink and/or Spotify link for the song or album and copy it to your clipboard.
 
 </details>
@@ -100,23 +109,39 @@ sudo pacman -S yt-dlp ffmpeg
 ### Basic Search
 
 1. Configure your Apple Music API credentials (first time only):
-   ```
-   ./songlink config
+   ```bash
+   songlink-cli config
    ```
    
 2. Search for a song or album:
-   ```
-   ./songlink search "song or album name"
+   ```bash
+   songlink-cli search "song or album name"
    ```
    
 3. Select from the search results by entering the number.
 
 4. After selecting a result, you will be prompted to choose an action:
-   1) Copy the song.link + Spotify URL to clipboard  
-   2) Download the full track as MP3  
-   3) Download a video (MP4) with the album artwork
+   - **Option 1**: Copy the song.link + Spotify URL to clipboard  
+   - **Option 2**: Download the full track as MP3  
+   - **Option 3**: Download a video (MP4) with the album artwork
 
 5. If you choose to download, the file(s) will be saved in the `downloads/` directory by default.
+
+### Advanced Search Examples
+
+```bash
+# Search for a specific song
+songlink-cli search "Bohemian Rhapsody"
+
+# Search for albums only
+songlink-cli search -type=album "Abbey Road"
+
+# Search and format for Discord sharing
+songlink-cli search -d "Hotel California"
+
+# Search with custom download directory
+songlink-cli search -out=~/Music "Imagine"
+```
 
 ### Search Flags
 
@@ -142,14 +167,27 @@ Download individual tracks as audio files or videos with artwork.
 
 ### Flags
 
-- `-type=song` / `album` / `both` (default: song) — Type of Apple Music search.  
-- `-format=mp3` / `mp4` (default: mp3) — Download as an audio file (MP3) or a video with artwork (MP4).  
-- `-out=DIR` (default: downloads) — Directory to save the downloaded files.
+| Flag | Options | Default | Description |
+|------|---------|---------|-------------|
+| `-type` | `song`, `album` | `song` | Type of Apple Music search |
+| `-format` | `mp3`, `mp4` | `mp3` | Download format (MP3 audio or MP4 video with artwork) |
+| `-out` | Directory path | `downloads` | Output directory for downloaded files |
+| `-debug` | - | `false` | Show yt-dlp and ffmpeg output |
 
-### Example
+### Examples
 
 ```bash
-./songlink download -type=song -format=mp4 "Purple Rain"
+# Download a song as MP3 (default)
+songlink-cli download "Stairway to Heaven"
+
+# Download as MP4 with album artwork
+songlink-cli download -format=mp4 "Purple Rain"
+
+# Download to custom directory
+songlink-cli download -out=~/Music "Yesterday"
+
+# Download with debug output
+songlink-cli download -debug "Wonderwall"
 ```
 
 </details>
@@ -177,11 +215,13 @@ Download all tracks from an Apple Music playlist or album URL.
 
 ### Flags
 
-- `--format=mp3` / `mp4` (default: mp3) — Download format for all tracks
-- `--out=DIR` (default: downloads) — Output directory for downloaded files
-- `--concurrent=N` (default: 3) — Number of parallel downloads
-- `--metadata` — Save playlist/album metadata as JSON
-- `--debug` — Show detailed download progress and debug info
+| Flag | Options | Default | Description |
+|------|---------|---------|-------------|
+| `--format` | `mp3`, `mp4` | `mp3` | Download format for all tracks |
+| `--out` | Directory path | `downloads` | Output directory for downloaded files |
+| `--concurrent` | `1-10` | `3` | Number of parallel downloads |
+| `--metadata` | - | `false` | Save playlist/album metadata as JSON |
+| `--debug` | - | `false` | Show detailed download progress and debug info |
 
 ### Examples
 
@@ -206,10 +246,16 @@ Download all tracks from an Apple Music playlist or album URL.
 
 ### Troubleshooting
 
-If you get a "404 Resource Not Found" error:
+#### 404 Resource Not Found Errors
 - The playlist/album may be region-locked
-- The content may have been removed
+- The content may have been removed  
 - Try using a different storefront in the URL (e.g., `/us/`, `/gb/`, `/jp/`)
+
+#### Download Failures
+- Ensure `yt-dlp` and `ffmpeg` are installed and up to date
+- Some tracks may not be available on YouTube
+- Try reducing `--concurrent` value if experiencing rate limits
+- Use `--debug` flag to see detailed error messages
 
 </details>
 
@@ -242,49 +288,65 @@ Your credentials will be securely stored in `~/.songlink-cli/config.json`
 <details>
 <summary><strong>📚 Quick Examples</strong></summary>
 
-### Link Retrieval
+### Link Retrieval from Clipboard
 
 ```bash
 # Get Songlink URL (default)
-./songlink
+songlink-cli
 
 # Get Songlink URL without <> for Twitter
-./songlink -x
+songlink-cli -x
 
 # Get Songlink URL with <> + Spotify URL for Discord
-./songlink -d
+songlink-cli -d
 
 # Get only Spotify URL
-./songlink -s
+songlink-cli -s
 ```
 
 ### Search Examples
 
 ```bash
 # Search for a song
-./songlink search "Bohemian Rhapsody"
+songlink-cli search "Bohemian Rhapsody"
 
 # Search for an album with Discord format
-./songlink search -type=album -d "Abbey Road"
+songlink-cli search -type=album -d "Abbey Road"
 
 # Search for both songs and albums
-./songlink search -type=both "Beatles"
+songlink-cli search -type=both "Beatles"
+
+# Search with custom download directory
+songlink-cli search -out=~/Downloads "Imagine"
 ```
 
 ### Download Examples
 
 ```bash
 # Download a single track as MP3
-./songlink download "Purple Rain"
+songlink-cli download "Purple Rain"
 
 # Download a single track as MP4 with artwork
-./songlink download -format=mp4 "Imagine"
+songlink-cli download -format=mp4 "Imagine"
 
+# Download to specific directory with debug output
+songlink-cli download -out=~/Music -debug "Let It Be"
+```
+
+### Playlist/Album Download Examples
+
+```bash
 # Download an entire album
-./songlink playlist "https://music.apple.com/us/album/abbey-road/401469823"
+songlink-cli playlist "https://music.apple.com/us/album/abbey-road/401469823"
 
-# Download album with metadata and custom settings
-./songlink playlist --metadata --out=my-music --concurrent=5 "https://music.apple.com/us/album/..."
+# Download playlist with metadata
+songlink-cli playlist --metadata "https://music.apple.com/us/playlist/top-100-global/pl.d25f5d1181894928af76c85c967f8f31"
+
+# Fast download with 5 workers and MP4 format
+songlink-cli playlist --concurrent=5 --format=mp4 "https://music.apple.com/album/..."
+
+# Download with all options
+songlink-cli playlist --format=mp4 --out=my-music --concurrent=5 --metadata --debug "https://music.apple.com/playlist/..."
 ```
 
 </details>
