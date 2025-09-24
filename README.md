@@ -59,23 +59,69 @@ Go to [Releases](https://github.com/guitaripod/songlink-cli/releases) and downlo
 <details>
 <summary><strong>🛠️ Dependencies for Download Features</strong></summary>
 
+### ⚠️ IMPORTANT: yt-dlp Version Requirements
+
 To use the download functionality (single tracks or playlists), you need:
 
-- `yt-dlp` - For downloading audio from YouTube
-- `ffmpeg` - For audio/video processing
+- **`yt-dlp`** - For downloading audio from YouTube **(MUST be latest version)**
+- **`ffmpeg`** - For audio/video processing
 
-**Install on macOS:**
+> **⚠️ Critical:** YouTube frequently changes their API, breaking older versions of yt-dlp. You **MUST** keep yt-dlp updated to the latest version or downloads will fail.
+
+### Installing yt-dlp (Latest Version)
+
+**macOS (Homebrew):**
 ```bash
+# Install and keep updated
 brew install yt-dlp ffmpeg
+brew upgrade yt-dlp  # Run regularly to stay updated
 ```
 
-**Install on Linux:**
+**Linux (Recommended methods for latest version):**
+
 ```bash
+# Option 1: Direct download (always latest)
+curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o ~/.local/bin/yt-dlp
+chmod +x ~/.local/bin/yt-dlp
+# Add ~/.local/bin to your PATH if not already there
+
+# Option 2: pip/pipx (easy updates)
+pipx install yt-dlp  # or: pip install --user yt-dlp
+pipx upgrade yt-dlp  # Run regularly to stay updated
+
+# Option 3: Package manager (may be outdated)
 # Ubuntu/Debian
 sudo apt install yt-dlp ffmpeg
+# Note: apt version is often outdated. Consider Option 1 or 2 instead.
 
-# Arch
-sudo pacman -S yt-dlp ffmpeg
+# Arch Linux (AUR version stays current)
+yay -S yt-dlp-git ffmpeg  # yt-dlp-git auto-updates
+# Or for manual updates:
+yay -S yt-dlp ffmpeg
+yay -Syu yt-dlp  # Run regularly
+```
+
+**Verify yt-dlp is up to date:**
+```bash
+yt-dlp --version
+# Should show a recent date (within last month)
+# If older, update immediately
+```
+
+### Troubleshooting Download Errors
+
+If downloads fail with errors like:
+- "Requested format is not available"
+- "Signature extraction failed"
+- "Some formats may be missing"
+
+**This means yt-dlp is outdated.** Update it immediately:
+```bash
+# Quick update based on your system:
+yt-dlp -U  # If installed via direct download
+pipx upgrade yt-dlp  # If installed via pipx
+brew upgrade yt-dlp  # macOS
+yay -Syu yt-dlp  # Arch Linux
 ```
 
 </details>
@@ -248,14 +294,25 @@ Download all tracks from an Apple Music playlist or album URL.
 
 #### 404 Resource Not Found Errors
 - The playlist/album may be region-locked
-- The content may have been removed  
+- The content may have been removed
 - Try using a different storefront in the URL (e.g., `/us/`, `/gb/`, `/jp/`)
 
 #### Download Failures
-- Ensure `yt-dlp` and `ffmpeg` are installed and up to date
+
+**Most common cause: Outdated yt-dlp**
+```bash
+# Check your yt-dlp version
+yt-dlp --version
+
+# Update immediately if older than a month
+yt-dlp -U  # or use your package manager
+```
+
+**Other causes:**
 - Some tracks may not be available on YouTube
 - Try reducing `--concurrent` value if experiencing rate limits
 - Use `--debug` flag to see detailed error messages
+- Ensure both `yt-dlp` AND `ffmpeg` are installed
 
 </details>
 
