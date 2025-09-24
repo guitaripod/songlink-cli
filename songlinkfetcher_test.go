@@ -11,7 +11,6 @@ import (
 func TestMakeRequest(t *testing.T) {
 	searchURL := "https://music.apple.com/fi/album/caravan/1572919347?i=1572919354"
 
-	// Mock HTTP server to return a 200 OK response with a sample JSON response body
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, `{"pageUrl": "https://song.link/fi/i/1572919354", "linksByPlatform": {"spotify": {"url": "https://open.spotify.com/track/2Xtsv7BUMrNodQWH2JPOc0"}}}`)
@@ -20,7 +19,6 @@ func TestMakeRequest(t *testing.T) {
 
 	response, err := makeRequest(searchURL)
 
-	// Verify that the function returns the expected results
 	if err != nil {
 		t.Errorf("makeRequest(%q) returned an unexpected error: %v", searchURL, err)
 	}
@@ -29,7 +27,6 @@ func TestMakeRequest(t *testing.T) {
 		t.Errorf("makeRequest(%q) returned a non-OK HTTP response status: %s", searchURL, response.Status)
 	}
 
-	// Decode the response body and verify that it contains the expected values
 	linksResponse := SonglinkResponse{}
 	decoder := json.NewDecoder(response.Body)
 	err = decoder.Decode(&linksResponse)

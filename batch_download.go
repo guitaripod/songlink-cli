@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// BatchDownloader manages parallel downloads of multiple tracks
 type BatchDownloader struct {
 	concurrency   int
 	downloadQueue chan DownloadJob
@@ -17,17 +16,15 @@ type BatchDownloader struct {
 	progress      *ProgressTracker
 }
 
-// DownloadJob represents a single download task
 type DownloadJob struct {
 	Track      SearchResult
-	Format     string // mp3 or mp4
+	Format     string
 	OutputDir  string
 	Debug      bool
 	RetryCount int
-	Index      int // Track index in playlist/album
+	Index      int
 }
 
-// DownloadResult represents the result of a download attempt
 type DownloadResult struct {
 	Job      DownloadJob
 	FilePath string
@@ -35,10 +32,9 @@ type DownloadResult struct {
 	Duration time.Duration
 }
 
-// NewBatchDownloader creates a new batch downloader
 func NewBatchDownloader(concurrency int) *BatchDownloader {
 	if concurrency <= 0 {
-		concurrency = 3 // Default concurrency
+		concurrency = 3
 	}
 	
 	return &BatchDownloader{
@@ -49,7 +45,6 @@ func NewBatchDownloader(concurrency int) *BatchDownloader {
 	}
 }
 
-// Start initializes the worker pool
 func (bd *BatchDownloader) Start(ctx context.Context) {
 	for i := 0; i < bd.concurrency; i++ {
 		bd.wg.Add(1)
@@ -57,7 +52,6 @@ func (bd *BatchDownloader) Start(ctx context.Context) {
 	}
 }
 
-// worker processes download jobs
 func (bd *BatchDownloader) worker(ctx context.Context, workerID int) {
 	defer bd.wg.Done()
 	
@@ -70,15 +64,12 @@ func (bd *BatchDownloader) worker(ctx context.Context, workerID int) {
 				return
 			}
 			
-			// Update progress
 			bd.progress.StartDownload(job.Track.ID, job.Track.Name, job.Track.ArtistName)
 			
-			// Perform download
 			startTime := time.Now()
 			filePath, err := bd.downloadTrack(job)
 			duration := time.Since(startTime)
 			
-			// Send result
 			result := DownloadResult{
 				Job:      job,
 				FilePath: filePath,
@@ -86,7 +77,6 @@ func (bd *BatchDownloader) worker(ctx context.Context, workerID int) {
 				Duration: duration,
 			}
 			
-			// Update progress
 			if err != nil {
 				bd.progress.MarkFailed(job.Track.ID, err)
 			} else {
@@ -102,7 +92,6 @@ func (bd *BatchDownloader) worker(ctx context.Context, workerID int) {
 	}
 }
 
-// downloadTrack performs the actual download with retry logic
 func (bd *BatchDownloader) downloadTrack(job DownloadJob) (string, error) {
 	maxRetries := 3
 	retryDelay := time.Second
@@ -110,11 +99,9 @@ func (bd *BatchDownloader) downloadTrack(job DownloadJob) (string, error) {
 	var lastErr error
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			// Wait before retry with exponential backoff
 			time.Sleep(retryDelay * time.Duration(attempt))
 		}
 		
-		// Attempt download
 		filePath, err := DownloadTrack(
 			job.Track.Name,
 			job.Track.ArtistName,
@@ -135,7 +122,6 @@ func (bd *BatchDownloader) downloadTrack(job DownloadJob) (string, error) {
 	return "", fmt.Errorf("download failed after %d attempts: %w", maxRetries+1, lastErr)
 }
 
-// QueueDownload adds a download job to the queue
 func (bd *BatchDownloader) QueueDownload(job DownloadJob) error {
 	select {
 	case bd.downloadQueue <- job:
@@ -146,24 +132,20 @@ func (bd *BatchDownloader) QueueDownload(job DownloadJob) error {
 	}
 }
 
-// Close shuts down the downloader and waits for workers to finish
 func (bd *BatchDownloader) Close() {
 	close(bd.downloadQueue)
 	bd.wg.Wait()
 	close(bd.results)
 }
 
-// GetResults returns the results channel
 func (bd *BatchDownloader) GetResults() <-chan DownloadResult {
 	return bd.results
 }
 
-// GetProgress returns the progress tracker
 func (bd *BatchDownloader) GetProgress() *ProgressTracker {
 	return bd.progress
 }
 
-// ProgressTracker tracks download progress
 type ProgressTracker struct {
 	mu         sync.RWMutex
 	total      int32
@@ -173,7 +155,6 @@ type ProgressTracker struct {
 	startTime  time.Time
 }
 
-// TrackProgress represents progress for a single track
 type TrackProgress struct {
 	ID         string
 	Name       string
@@ -186,7 +167,6 @@ type TrackProgress struct {
 	RetryCount int
 }
 
-// DownloadStatus represents the status of a download
 type DownloadStatus string
 
 const (
@@ -197,7 +177,6 @@ const (
 	StatusRetrying    DownloadStatus = "retrying"
 )
 
-// NewProgressTracker creates a new progress tracker
 func NewProgressTracker() *ProgressTracker {
 	return &ProgressTracker{
 		inProgress: make(map[string]*TrackProgress),
@@ -205,7 +184,6 @@ func NewProgressTracker() *ProgressTracker {
 	}
 }
 
-// QueueTrack marks a track as queued
 func (pt *ProgressTracker) QueueTrack(id, name, artist string) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
@@ -219,7 +197,6 @@ func (pt *ProgressTracker) QueueTrack(id, name, artist string) {
 	}
 }
 
-// StartDownload marks a track as downloading
 func (pt *ProgressTracker) StartDownload(id, name, artist string) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
@@ -230,7 +207,6 @@ func (pt *ProgressTracker) StartDownload(id, name, artist string) {
 	}
 }
 
-// UpdateRetry updates retry information
 func (pt *ProgressTracker) UpdateRetry(id string, attempt, maxAttempts int) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
@@ -241,7 +217,6 @@ func (pt *ProgressTracker) UpdateRetry(id string, attempt, maxAttempts int) {
 	}
 }
 
-// MarkCompleted marks a track as successfully downloaded
 func (pt *ProgressTracker) MarkCompleted(id, filePath string) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
@@ -254,7 +229,6 @@ func (pt *ProgressTracker) MarkCompleted(id, filePath string) {
 	}
 }
 
-// MarkFailed marks a track as failed
 func (pt *ProgressTracker) MarkFailed(id string, err error) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
@@ -267,14 +241,12 @@ func (pt *ProgressTracker) MarkFailed(id string, err error) {
 	}
 }
 
-// GetStats returns current download statistics
 func (pt *ProgressTracker) GetStats() (total, completed, failed int32) {
 	return atomic.LoadInt32(&pt.total),
 		atomic.LoadInt32(&pt.completed),
 		atomic.LoadInt32(&pt.failed)
 }
 
-// GetTrackProgress returns progress for a specific track
 func (pt *ProgressTracker) GetTrackProgress(id string) (*TrackProgress, bool) {
 	pt.mu.RLock()
 	defer pt.mu.RUnlock()
@@ -283,12 +255,10 @@ func (pt *ProgressTracker) GetTrackProgress(id string) (*TrackProgress, bool) {
 	return track, ok
 }
 
-// GetAllProgress returns progress for all tracks
 func (pt *ProgressTracker) GetAllProgress() map[string]*TrackProgress {
 	pt.mu.RLock()
 	defer pt.mu.RUnlock()
 	
-	// Create a copy to avoid race conditions
 	result := make(map[string]*TrackProgress)
 	for k, v := range pt.inProgress {
 		result[k] = v
@@ -296,7 +266,6 @@ func (pt *ProgressTracker) GetAllProgress() map[string]*TrackProgress {
 	return result
 }
 
-// PrintSummary prints a summary of the download session
 func (pt *ProgressTracker) PrintSummary() {
 	total, completed, failed := pt.GetStats()
 	duration := time.Since(pt.startTime)
@@ -308,7 +277,6 @@ func (pt *ProgressTracker) PrintSummary() {
 	fmt.Printf("Duration: %s\n", duration.Round(time.Second))
 	fmt.Printf("=====================================\n")
 	
-	// Show failed downloads if any
 	if failed > 0 {
 		fmt.Printf("\nFailed downloads:\n")
 		for _, track := range pt.GetAllProgress() {

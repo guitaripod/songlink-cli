@@ -12,7 +12,6 @@ import (
 	"github.com/guitaripod/musickitkat/auth"
 )
 
-// SearchType represents the type of content to search for.
 type SearchType string
 
 const (
@@ -21,12 +20,10 @@ const (
 	Both  SearchType = "both"
 )
 
-// MusicSearcher provides methods for searching Apple Music content.
 type MusicSearcher struct {
 	client *musickitkat.Client
 }
 
-// SearchResult represents a single search result from Apple Music.
 type SearchResult struct {
 	ID         string
 	Name       string

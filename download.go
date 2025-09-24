@@ -12,18 +12,12 @@ import (
    "time"
 )
 
-// DownloadTrack downloads a track from YouTube using yt-dlp, converting to the specified format.
-// For MP3: Downloads audio and embeds artwork.
-// For MP4: Creates a video file with the album artwork as the video stream.
-// Returns the path to the downloaded file.
 func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) (string, error) {
-   // Check if yt-dlp is installed
    ytdlpPath, err := exec.LookPath("yt-dlp")
    if err != nil {
        return "", fmt.Errorf("yt-dlp not found in PATH. Please install it: brew install yt-dlp (macOS) or see README for other systems")
    }
 
-   // Check yt-dlp version
    if err := checkYtDlpVersion(ytdlpPath, debug); err != nil {
        return "", err
    }
@@ -178,7 +172,6 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
    }
 }
 
-// downloadFile downloads a file from the given URL to the specified path.
 func downloadFile(path, url string) error {
    resp, err := http.Get(url)
    if err != nil {
@@ -197,13 +190,11 @@ func downloadFile(path, url string) error {
    return err
 }
 
-// sanitizeFileName removes characters that are invalid in filenames across different filesystems.
 func sanitizeFileName(name string) string {
    invalid := regexp.MustCompile(`[\\/:*?"<>|]`)
    return invalid.ReplaceAllString(name, "_")
 }
 
-// checkYtDlpVersion checks if yt-dlp is recent enough to work with YouTube
 func checkYtDlpVersion(ytdlpPath string, debug bool) error {
    cmd := exec.Command(ytdlpPath, "--version")
    output, err := cmd.Output()
@@ -216,10 +207,8 @@ func checkYtDlpVersion(ytdlpPath string, debug bool) error {
        fmt.Printf("yt-dlp version: %s\n", version)
    }
 
-   // Parse version date (format: YYYY.MM.DD)
    parts := strings.Split(version, ".")
    if len(parts) >= 3 {
-       // Try to parse as date
        yearStr := parts[0]
        monthStr := parts[1]
 
@@ -228,7 +217,6 @@ func checkYtDlpVersion(ytdlpPath string, debug bool) error {
        fmt.Sscanf(yearStr, "%d", &year)
        fmt.Sscanf(monthStr, "%d", &month)
 
-       // Warn if version is older than 2 months
        now := time.Now()
        currentYear := now.Year()
        currentMonth := int(now.Month())

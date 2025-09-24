@@ -20,7 +20,6 @@ var (
 	helpFlag = flag.Bool("help", false, "Show help information")
 )
 
-// Command represents a CLI subcommand with its name, description, and execution function.
 type Command struct {
 	Name        string
 	Description string
@@ -154,12 +153,10 @@ func executeDownload(args []string) error {
    helpFlag := downloadCmd.Bool("help", false, "Show help for download command")
    hFlag := downloadCmd.Bool("h", false, "Show help for download command")
 
-   // Parse flags
    if err := downloadCmd.Parse(args); err != nil {
        return err
    }
    
-   // Check for help
    if *helpFlag || *hFlag {
        printDownloadHelp()
        os.Exit(0)

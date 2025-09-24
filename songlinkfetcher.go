@@ -10,24 +10,19 @@ import (
 	"github.com/atotto/clipboard"
 )
 
-// SonglinkResponse represents the response from the song.link API.
 type SonglinkResponse struct {
 	PageURL         string          `json:"pageUrl"`
 	LinksByPlatform LinksByPlatform `json:"linksByPlatform"`
 }
 
-// LinksByPlatform contains links to the content on various music platforms.
 type LinksByPlatform struct {
 	Spotify PlatformMusic `json:"spotify"`
 }
 
-// PlatformMusic represents a single platform's music link.
 type PlatformMusic struct {
 	URL string `json:"url"`
 }
 
-// GetLinks fetches shareable links for a given music URL and copies them to the clipboard.
-// Formats the output based on command-line flags (-x, -d, -s).
 func GetLinks(searchURL string) error {
 	response, err := makeRequest(searchURL)
 	if err != nil {
@@ -69,7 +64,6 @@ func GetLinks(searchURL string) error {
 	return nil
 }
 
-// makeRequest performs an HTTP GET request to the song.link API.
 func makeRequest(searchURL string) (*http.Response, error) {
 	url := buildURL(searchURL)
 	response, err := http.Get(url)
@@ -84,7 +78,6 @@ func makeRequest(searchURL string) (*http.Response, error) {
 	return response, nil
 }
 
-// buildURL constructs the song.link API URL with the search URL as a parameter.
 func buildURL(searchURL string) string {
 	url := url.URL{
 		Scheme: "https",

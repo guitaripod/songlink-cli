@@ -8,13 +8,12 @@ import (
 	"time"
 )
 
-// PlaylistMetadata represents metadata for a downloaded playlist/album
 type PlaylistMetadata struct {
-	Type        string           `json:"type"` // "album" or "playlist"
+	Type        string           `json:"type"`
 	ID          string           `json:"id"`
 	Name        string           `json:"name"`
-	Artist      string           `json:"artist,omitempty"`      // For albums
-	Curator     string           `json:"curator,omitempty"`     // For playlists
+	Artist      string           `json:"artist,omitempty"`
+	Curator     string           `json:"curator,omitempty"`
 	Description string           `json:"description,omitempty"`
 	TrackCount  int              `json:"track_count"`
 	Duration    int              `json:"duration_seconds"`
@@ -24,7 +23,6 @@ type PlaylistMetadata struct {
 	Tracks      []TrackMetadata  `json:"tracks"`
 }
 
-// TrackMetadata represents metadata for a single track
 type TrackMetadata struct {
 	Index       int    `json:"index"`
 	ID          string `json:"id"`
@@ -37,19 +35,15 @@ type TrackMetadata struct {
 	Error       string `json:"error,omitempty"`
 }
 
-// SavePlaylistMetadata saves playlist metadata to a JSON file
 func SavePlaylistMetadata(metadata *PlaylistMetadata, outputDir string) error {
-	// Create filename based on playlist/album name
 	filename := sanitizeFileName(metadata.Name) + "_metadata.json"
 	filepath := filepath.Join(outputDir, filename)
 	
-	// Marshal to JSON with indentation
 	data, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 	
-	// Write to file
 	if err := os.WriteFile(filepath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write metadata file: %w", err)
 	}
@@ -57,7 +51,6 @@ func SavePlaylistMetadata(metadata *PlaylistMetadata, outputDir string) error {
 	return nil
 }
 
-// LoadPlaylistMetadata loads playlist metadata from a JSON file
 func LoadPlaylistMetadata(filepath string) (*PlaylistMetadata, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
@@ -72,7 +65,6 @@ func LoadPlaylistMetadata(filepath string) (*PlaylistMetadata, error) {
 	return &metadata, nil
 }
 
-// UpdateTrackStatus updates the download status of a track in metadata
 func (pm *PlaylistMetadata) UpdateTrackStatus(trackID string, downloaded bool, filepath string, err error) {
 	for i, track := range pm.Tracks {
 		if track.ID == trackID {
@@ -90,7 +82,6 @@ func (pm *PlaylistMetadata) UpdateTrackStatus(trackID string, downloaded bool, f
 	}
 }
 
-// CreateAlbumMetadata creates metadata for an album
 func CreateAlbumMetadata(album *AlbumWithTracks, sourceURL string) *PlaylistMetadata {
 	metadata := &PlaylistMetadata{
 		Type:         "album",
@@ -104,7 +95,6 @@ func CreateAlbumMetadata(album *AlbumWithTracks, sourceURL string) *PlaylistMeta
 		Tracks:       make([]TrackMetadata, len(album.Tracks)),
 	}
 	
-	// Add track metadata
 	for i, track := range album.Tracks {
 		metadata.Tracks[i] = TrackMetadata{
 			Index:      i + 1,
@@ -118,7 +108,6 @@ func CreateAlbumMetadata(album *AlbumWithTracks, sourceURL string) *PlaylistMeta
 	return metadata
 }
 
-// CreatePlaylistMetadata creates metadata for a playlist
 func CreatePlaylistMetadata(playlist *PlaylistWithTracks, sourceURL string) *PlaylistMetadata {
 	metadata := &PlaylistMetadata{
 		Type:         "playlist",
@@ -132,7 +121,6 @@ func CreatePlaylistMetadata(playlist *PlaylistWithTracks, sourceURL string) *Pla
 		Tracks:       make([]TrackMetadata, len(playlist.Tracks)),
 	}
 	
-	// Add track metadata
 	for i, track := range playlist.Tracks {
 		metadata.Tracks[i] = TrackMetadata{
 			Index:      i + 1,

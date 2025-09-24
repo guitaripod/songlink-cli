@@ -12,14 +12,12 @@ import (
 	"github.com/guitaripod/musickitkat/models"
 )
 
-// AppleMusicClient extends the Apple Music API functionality
 type AppleMusicClient struct {
 	BaseURL        string
 	DeveloperToken string
 	HTTPClient     *http.Client
 }
 
-// NewAppleMusicClient creates a new Apple Music API client
 func NewAppleMusicClient(developerToken string) *AppleMusicClient {
 	return &AppleMusicClient{
 		BaseURL:        "https://api.music.apple.com/v1",
@@ -30,7 +28,6 @@ func NewAppleMusicClient(developerToken string) *AppleMusicClient {
 	}
 }
 
-// doRequest performs an HTTP request to the Apple Music API
 func (c *AppleMusicClient) doRequest(ctx context.Context, method, path string, params url.Values) (*http.Response, error) {
 	url := c.BaseURL + path
 	if len(params) > 0 {
@@ -49,7 +46,6 @@ func (c *AppleMusicClient) doRequest(ctx context.Context, method, path string, p
 	return c.HTTPClient.Do(req)
 }
 
-// GetAlbumTracks fetches all tracks for an album
 func (c *AppleMusicClient) GetAlbumTracks(ctx context.Context, storefront, albumID string) ([]models.Song, error) {
 	path := fmt.Sprintf("/catalog/%s/albums/%s/tracks", storefront, albumID)
 	
@@ -79,7 +75,6 @@ func (c *AppleMusicClient) GetAlbumTracks(ctx context.Context, storefront, album
 
 		allTracks = append(allTracks, response.Data...)
 
-		// Check if there are more tracks
 		if response.Next == "" || len(response.Data) < limit {
 			break
 		}
@@ -90,7 +85,6 @@ func (c *AppleMusicClient) GetAlbumTracks(ctx context.Context, storefront, album
 	return allTracks, nil
 }
 
-// GetPlaylistDetails fetches playlist information
 func (c *AppleMusicClient) GetPlaylistDetails(ctx context.Context, storefront, playlistID string) (*models.Playlist, error) {
 	path := fmt.Sprintf("/catalog/%s/playlists/%s", storefront, playlistID)
 	params := url.Values{}
@@ -102,7 +96,6 @@ func (c *AppleMusicClient) GetPlaylistDetails(ctx context.Context, storefront, p
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Read error body for debugging
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
@@ -119,9 +112,7 @@ func (c *AppleMusicClient) GetPlaylistDetails(ctx context.Context, storefront, p
 	return &playlistResp.Data[0], nil
 }
 
-// GetPlaylistTracks fetches all tracks for a playlist
 func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, playlistID string) ([]models.Song, error) {
-	// First get the playlist with tracks relationship
 	path := fmt.Sprintf("/catalog/%s/playlists/%s", storefront, playlistID)
 	params := url.Values{}
 	params.Set("include", "tracks")
@@ -133,7 +124,6 @@ func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, pl
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Read error body for debugging
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
@@ -149,7 +139,6 @@ func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, pl
 
 	playlist := playlistResp.Data[0]
 
-	// Extract track IDs from relationships
 	var trackIDs []string
 	if playlist.Relationships.Tracks.Data != nil {
 		for _, track := range playlist.Relationships.Tracks.Data {
@@ -161,7 +150,6 @@ func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, pl
 		return nil, fmt.Errorf("no tracks found in playlist")
 	}
 
-	// Fetch track details in batches
 	var allTracks []models.Song
 	for i := 0; i < len(trackIDs); i += 100 {
 		end := i + 100
@@ -191,7 +179,6 @@ func (c *AppleMusicClient) GetPlaylistTracks(ctx context.Context, storefront, pl
 	return allTracks, nil
 }
 
-// joinIDs joins string IDs with commas
 func joinIDs(ids []string) string {
 	result := ""
 	for i, id := range ids {

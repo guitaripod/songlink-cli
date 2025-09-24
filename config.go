@@ -7,16 +7,14 @@ import (
 	"path/filepath"
 )
 
-// Config stores Apple Music API credentials and authentication details.
 type Config struct {
-	TeamID       string `json:"team_id"`       // Apple Developer Team ID
-	KeyID        string `json:"key_id"`        // MusicKit API Key ID
-	PrivateKey   string `json:"private_key"`   // P8 private key content
-	MusicID      string `json:"music_id"`      // Music identifier (usually same as TeamID)
-	ConfigExists bool   `json:"-"`             // Whether config file exists on disk
+	TeamID       string `json:"team_id"`
+	KeyID        string `json:"key_id"`
+	PrivateKey   string `json:"private_key"`
+	MusicID      string `json:"music_id"`
+	ConfigExists bool   `json:"-"`
 }
 
-// GetConfigPath returns the path to the configuration file, creating the directory if needed.
 func GetConfigPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -32,7 +30,6 @@ func GetConfigPath() (string, error) {
 	return filepath.Join(configDir, "config.json"), nil
 }
 
-// LoadConfig loads the configuration from disk, returning an empty config if the file doesn't exist.
 func LoadConfig() (*Config, error) {
 	configPath, err := GetConfigPath()
 	if err != nil {
@@ -58,7 +55,6 @@ func LoadConfig() (*Config, error) {
 	return &config, nil
 }
 
-// SaveConfig writes the configuration to disk with proper permissions.
 func (c *Config) SaveConfig() error {
 	configPath, err := GetConfigPath()
 	if err != nil {

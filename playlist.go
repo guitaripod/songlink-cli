@@ -9,23 +9,18 @@ import (
 	"strings"
 )
 
-// PlaylistURLParser handles parsing of Apple Music URLs
 type PlaylistURLParser struct {
 	playlistPattern *regexp.Regexp
 	albumPattern    *regexp.Regexp
 }
 
-// NewPlaylistURLParser creates a new URL parser
 func NewPlaylistURLParser() *PlaylistURLParser {
 	return &PlaylistURLParser{
-		// Match playlist URLs: https://music.apple.com/{country}/playlist/{name}/pl.{id}
 		playlistPattern: regexp.MustCompile(`music\.apple\.com/([a-z]{2})/playlist/[^/]+/pl\.([a-zA-Z0-9]+)`),
-		// Match album URLs: https://music.apple.com/{country}/album/{name}/{id}
 		albumPattern: regexp.MustCompile(`music\.apple\.com/([a-z]{2})/album/[^/]+/(\d+)`),
 	}
 }
 
-// ParseResourceType represents the type of parsed resource
 type ParseResourceType string
 
 const (
@@ -33,27 +28,22 @@ const (
 	ParsedAlbum    ParseResourceType = "album"
 )
 
-// ParsedResource contains the parsed URL information
 type ParsedResource struct {
 	Type       ParseResourceType
 	ID         string
-	Storefront string // Country code (e.g., "us", "gb")
+	Storefront string
 }
 
-// Parse extracts resource type and ID from an Apple Music URL
 func (p *PlaylistURLParser) Parse(inputURL string) (*ParsedResource, error) {
-	// Validate URL
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
 	}
 
-	// Ensure it's an Apple Music URL
 	if !strings.Contains(parsedURL.Host, "music.apple.com") {
 		return nil, errors.New("not an Apple Music URL")
 	}
 
-	// Try to match playlist pattern
 	if matches := p.playlistPattern.FindStringSubmatch(inputURL); len(matches) > 2 {
 		return &ParsedResource{
 			Type:       ParsedPlaylist,
@@ -62,7 +52,6 @@ func (p *PlaylistURLParser) Parse(inputURL string) (*ParsedResource, error) {
 		}, nil
 	}
 
-	// Try to match album pattern
 	if matches := p.albumPattern.FindStringSubmatch(inputURL); len(matches) > 2 {
 		return &ParsedResource{
 			Type:       ParsedAlbum,
@@ -74,12 +63,10 @@ func (p *PlaylistURLParser) Parse(inputURL string) (*ParsedResource, error) {
 	return nil, errors.New("unrecognized Apple Music URL format")
 }
 
-// ExtendedMusicSearcher extends MusicSearcher with playlist/album track fetching
 type ExtendedMusicSearcher struct {
 	*MusicSearcher
 }
 
-// NewExtendedMusicSearcher creates a new extended music searcher
 func NewExtendedMusicSearcher(config *Config) (*ExtendedMusicSearcher, error) {
 	searcher, err := NewMusicSearcher(config)
 	if err != nil {
@@ -88,27 +75,21 @@ func NewExtendedMusicSearcher(config *Config) (*ExtendedMusicSearcher, error) {
 	return &ExtendedMusicSearcher{MusicSearcher: searcher}, nil
 }
 
-// GetAlbumWithTracks fetches an album with all its tracks
 func (ems *ExtendedMusicSearcher) GetAlbumWithTracks(ctx context.Context, albumID string, storefront string) (*AlbumWithTracks, error) {
-	// Set the storefront for the catalog service
 	ems.client.Catalog.SetStorefront(storefront)
 
-	// Fetch the album details
 	album, err := ems.client.Catalog.GetAlbum(ctx, albumID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get album: %w", err)
 	}
 
-	// Create an extended Apple Music client to fetch tracks
 	apiClient := NewAppleMusicClient(ems.client.DeveloperToken)
 	
-	// Get all tracks for this album
 	songs, err := apiClient.GetAlbumTracks(ctx, storefront, albumID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get album tracks: %w", err)
 	}
 
-	// Convert to SearchResult format
 	var tracks []SearchResult
 	for _, song := range songs {
 		artURL := song.Attributes.Artwork.URL
@@ -125,7 +106,6 @@ func (ems *ExtendedMusicSearcher) GetAlbumWithTracks(ctx context.Context, albumI
 		})
 	}
 
-	// Build artwork URL
 	artURL := album.Attributes.Artwork.URL
 	artURL = strings.ReplaceAll(artURL, "{w}", "500")
 	artURL = strings.ReplaceAll(artURL, "{h}", "500")
@@ -140,24 +120,19 @@ func (ems *ExtendedMusicSearcher) GetAlbumWithTracks(ctx context.Context, albumI
 	}, nil
 }
 
-// GetPlaylistWithTracks fetches a playlist with all its tracks
 func (ems *ExtendedMusicSearcher) GetPlaylistWithTracks(ctx context.Context, playlistID string, storefront string) (*PlaylistWithTracks, error) {
-	// Create an extended Apple Music client
 	apiClient := NewAppleMusicClient(ems.client.DeveloperToken)
 
-	// Fetch playlist details using our custom client
 	playlist, err := apiClient.GetPlaylistDetails(ctx, storefront, playlistID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get playlist: %w", err)
 	}
 	
-	// Get all tracks for this playlist
 	songs, err := apiClient.GetPlaylistTracks(ctx, storefront, playlistID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get playlist tracks: %w", err)
 	}
 
-	// Convert to SearchResult format
 	var tracks []SearchResult
 	for _, song := range songs {
 		artURL := song.Attributes.Artwork.URL
@@ -174,7 +149,6 @@ func (ems *ExtendedMusicSearcher) GetPlaylistWithTracks(ctx context.Context, pla
 		})
 	}
 
-	// Build artwork URL
 	artURL := ""
 	if playlist.Attributes.Artwork.URL != "" {
 		artURL = playlist.Attributes.Artwork.URL
@@ -192,7 +166,6 @@ func (ems *ExtendedMusicSearcher) GetPlaylistWithTracks(ctx context.Context, pla
 	}, nil
 }
 
-// AlbumWithTracks represents an album with its tracks
 type AlbumWithTracks struct {
 	ID         string
 	Name       string
@@ -202,7 +175,6 @@ type AlbumWithTracks struct {
 	TrackCount int
 }
 
-// PlaylistWithTracks represents a playlist with its tracks
 type PlaylistWithTracks struct {
 	ID          string
 	Name        string
