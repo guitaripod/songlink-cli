@@ -89,6 +89,24 @@ func main() {
 	}
 }
 
+func reorderArgs(args []string, valueFlags map[string]bool) []string {
+   var flags, positionals []string
+   for i := 0; i < len(args); i++ {
+       a := args[i]
+       if strings.HasPrefix(a, "-") && a != "-" {
+           flags = append(flags, a)
+           name := strings.TrimLeft(a, "-")
+           if !strings.Contains(a, "=") && valueFlags[name] && i+1 < len(args) {
+               i++
+               flags = append(flags, args[i])
+           }
+           continue
+       }
+       positionals = append(positionals, a)
+   }
+   return append(flags, positionals...)
+}
+
 func executeSearch(args []string) error {
    searchCmd := flag.NewFlagSet("search", flag.ExitOnError)
    typeFlag := searchCmd.String("type", "song", "Type of search: song, album, or both (default: song)")
@@ -96,22 +114,22 @@ func executeSearch(args []string) error {
    debugFlag := searchCmd.Bool("debug", false, "Enable debug logging during download")
    helpFlag := searchCmd.Bool("help", false, "Show help for search command")
    hFlag := searchCmd.Bool("h", false, "Show help for search command")
-	
-	if err := searchCmd.Parse(args); err != nil {
+
+	if err := searchCmd.Parse(reorderArgs(args, map[string]bool{"type": true, "out": true})); err != nil {
 		return err
 	}
-	
+
 	if *helpFlag || *hFlag {
 		printSearchHelp()
 		os.Exit(0)
 	}
-	
+
 	searchArgs := searchCmd.Args()
 	if len(searchArgs) == 0 {
 		return fmt.Errorf("search query required")
 	}
-	
-	query := searchArgs[0]
+
+	query := strings.Join(searchArgs, " ")
 	
 	var searchType SearchType
 	switch *typeFlag {
@@ -153,10 +171,10 @@ func executeDownload(args []string) error {
    helpFlag := downloadCmd.Bool("help", false, "Show help for download command")
    hFlag := downloadCmd.Bool("h", false, "Show help for download command")
 
-   if err := downloadCmd.Parse(args); err != nil {
+   if err := downloadCmd.Parse(reorderArgs(args, map[string]bool{"type": true, "format": true, "out": true})); err != nil {
        return err
    }
-   
+
    if *helpFlag || *hFlag {
        printDownloadHelp()
        os.Exit(0)
@@ -230,7 +248,7 @@ func executePlaylist(args []string) error {
 	helpFlag := playlistCmd.Bool("help", false, "Show help for playlist command")
 	hFlag := playlistCmd.Bool("h", false, "Show help for playlist command")
 
-	if err := playlistCmd.Parse(args); err != nil {
+	if err := playlistCmd.Parse(reorderArgs(args, map[string]bool{"format": true, "out": true, "concurrent": true})); err != nil {
 		return err
 	}
 	

@@ -9,7 +9,6 @@ import (
    "path/filepath"
    "regexp"
    "strings"
-   "time"
 )
 
 func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) (string, error) {
@@ -60,15 +59,24 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
            }
            err := cmd.Run()
            if err == nil {
-               return filepath.Join(outDir, baseName+".mp3"), nil
+               break
            }
            lastErr = err
        }
-       if strings.Contains(fmt.Sprint(lastErr), "Requested format is not available") ||
-          strings.Contains(fmt.Sprint(lastErr), "Signature extraction failed") {
-           return "", fmt.Errorf("download failed - yt-dlp is likely outdated. Please update: yt-dlp -U or brew upgrade yt-dlp")
+
+       expectedPath := filepath.Join(outDir, baseName+".mp3")
+       if _, err := os.Stat(expectedPath); err == nil {
+           return expectedPath, nil
        }
-       return "", fmt.Errorf("all download attempts failed (try --debug for details): %w", lastErr)
+
+       if lastErr != nil {
+           if strings.Contains(fmt.Sprint(lastErr), "Requested format is not available") ||
+              strings.Contains(fmt.Sprint(lastErr), "Signature extraction failed") {
+               return "", fmt.Errorf("download failed - yt-dlp is likely outdated. Please update: yt-dlp -U or brew upgrade yt-dlp")
+           }
+           return "", fmt.Errorf("all download attempts failed (try --debug for details): %w", lastErr)
+       }
+       return "", fmt.Errorf("audio file was not created - download may have failed")
    case "mp4":
        if _, err := exec.LookPath("ffmpeg"); err != nil {
            return "", fmt.Errorf("ffmpeg not found in PATH. Please install it: brew install ffmpeg (macOS) or see README")
@@ -117,13 +125,7 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
            }
            lastErr = err
        }
-       if lastErr != nil {
-           if strings.Contains(fmt.Sprint(lastErr), "Requested format is not available") ||
-              strings.Contains(fmt.Sprint(lastErr), "Signature extraction failed") {
-               return "", fmt.Errorf("download failed - yt-dlp is likely outdated. Please update: yt-dlp -U or brew upgrade yt-dlp")
-           }
-           return "", fmt.Errorf("audio download failed (try --debug for details): %w", lastErr)
-       }
+
        entries, err := os.ReadDir(tempDir)
        if err != nil {
            return "", fmt.Errorf("failed to read temp dir: %w", err)
@@ -136,6 +138,13 @@ func DownloadTrack(song, artist, artworkURL, format, outDir string, debug bool) 
            }
        }
        if audioFile == "" {
+           if lastErr != nil {
+               if strings.Contains(fmt.Sprint(lastErr), "Requested format is not available") ||
+                  strings.Contains(fmt.Sprint(lastErr), "Signature extraction failed") {
+                   return "", fmt.Errorf("download failed - yt-dlp is likely outdated. Please update: yt-dlp -U or brew upgrade yt-dlp")
+               }
+               return "", fmt.Errorf("audio download failed (try --debug for details): %w", lastErr)
+           }
            return "", fmt.Errorf("audio extraction failed - no audio file was created. This may indicate yt-dlp needs updating")
        }
        outPath := filepath.Join(outDir, baseName+".mp4")
@@ -196,39 +205,13 @@ func sanitizeFileName(name string) string {
 }
 
 func checkYtDlpVersion(ytdlpPath string, debug bool) error {
-   cmd := exec.Command(ytdlpPath, "--version")
-   output, err := cmd.Output()
+   if !debug {
+       return nil
+   }
+   output, err := exec.Command(ytdlpPath, "--version").Output()
    if err != nil {
-       return fmt.Errorf("failed to check yt-dlp version: %w", err)
+       return nil
    }
-
-   version := strings.TrimSpace(string(output))
-   if debug {
-       fmt.Printf("yt-dlp version: %s\n", version)
-   }
-
-   parts := strings.Split(version, ".")
-   if len(parts) >= 3 {
-       yearStr := parts[0]
-       monthStr := parts[1]
-
-       year := 0
-       month := 0
-       fmt.Sscanf(yearStr, "%d", &year)
-       fmt.Sscanf(monthStr, "%d", &month)
-
-       now := time.Now()
-       currentYear := now.Year()
-       currentMonth := int(now.Month())
-
-       monthsOld := (currentYear - year) * 12 + (currentMonth - month)
-       if monthsOld > 2 {
-           return fmt.Errorf("yt-dlp version %s is too old (>2 months). YouTube frequently breaks compatibility. Please update: yt-dlp -U or brew upgrade yt-dlp", version)
-       }
-       if monthsOld > 1 && debug {
-           fmt.Printf("Warning: yt-dlp version %s is %d month(s) old. Consider updating for best compatibility.\n", version, monthsOld)
-       }
-   }
-
+   fmt.Printf("yt-dlp version: %s\n", strings.TrimSpace(string(output)))
    return nil
 }
