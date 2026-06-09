@@ -17,6 +17,10 @@ func TestMakeRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
+	original := songlinkAPIBase
+	songlinkAPIBase = server.URL
+	defer func() { songlinkAPIBase = original }()
+
 	response, err := makeRequest(searchURL)
 
 	if err != nil {

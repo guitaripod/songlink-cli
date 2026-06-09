@@ -78,14 +78,10 @@ func makeRequest(searchURL string) (*http.Response, error) {
 	return response, nil
 }
 
+var songlinkAPIBase = "https://api.song.link"
+
 func buildURL(searchURL string) string {
-	url := url.URL{
-		Scheme: "https",
-		Host:   "api.song.link",
-		Path:   "/v1-alpha.1/links",
-	}
-	values := url.Query()
+	values := url.Values{}
 	values.Add("url", searchURL)
-	url.RawQuery = values.Encode()
-	return url.String()
+	return fmt.Sprintf("%s/v1-alpha.1/links?%s", songlinkAPIBase, values.Encode())
 }
