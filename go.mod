@@ -1,4 +1,4 @@
-module github.com/guitaripod/songlink-cli.git
+module github.com/guitaripod/songlink-cli
 
 go 1.23.0
 
